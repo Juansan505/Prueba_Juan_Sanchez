@@ -1,0 +1,255 @@
+import java.util.ArrayList;
+import java.util.Map;
+
+/**
+ * Clase principal del sistema de gestión de inventario FerreMaster.
+ */
+public class Ferreteria {
+
+    private static ArrayList<Producto> inventario = new ArrayList<>();
+
+    public static void main(String[] args) {
+        boolean salir = false;
+
+        while (!salir) {
+            mostrarMenu();
+            try {
+                int opcion = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese una opción:");
+
+                switch (opcion) {
+                    case 1:
+                        ingresarProducto();
+                        break;
+                    case 2:
+                        eliminarProductoPorNombre();
+                        break;
+                    case 3:
+                        buscarProductoPorNombre();
+                        break;
+                    case 4:
+                        listarProductos();
+                        break;
+                    case 5:
+                        modificarProducto();
+                        break;
+                    case 6:
+                        salir = true;
+                        UtilidadesFerreteria.mostrarMensaje("Gracias por usar el sistema FerreMaster. ¡Hasta pronto!");
+                        break;
+                    default:
+                        UtilidadesFerreteria.mostrarMensaje("Opción inválida. Ingrese un número entre 1 y 6.");
+                }
+            } catch (Exception e) {
+                UtilidadesFerreteria.mostrarMensaje("Ocurrió un error: " + e.getMessage());
+            }
+        }
+    }
+
+    private static void mostrarMenu() {
+        System.out.println();
+        System.out.println("=== SISTEMA DE GESTIÓN FERREMASTER ===");
+        System.out.println("1. Ingresar producto");
+        System.out.println("2. Eliminar producto por nombre");
+        System.out.println("3. Buscar producto por nombre");
+        System.out.println("4. Listar todos los productos");
+        System.out.println("5. Cambiar nombre, garantía y propiedad eléctrica de un producto");
+        System.out.println("6. Salir");
+    }
+
+    // ---------- OPCIÓN 1: Ingresar producto ----------
+
+    private static void ingresarProducto() {
+        try {
+            String nombre = UtilidadesFerreteria.solicitarTexto("Ingrese el nombre del producto:");
+
+            // Validar duplicados por nombre (ignorando mayúsculas/minúsculas)
+            for (Producto p : inventario) {
+                if (p.getNombre().equalsIgnoreCase(nombre)) {
+                    UtilidadesFerreteria.mostrarMensaje("Error: Ya existe un producto con ese nombre.");
+                    return;
+                }
+            }
+
+            int garantiaMeses = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese la garantía en meses:");
+
+            // Mostrar y validar categoría según el diccionario
+            Map<Integer, String> categorias = UtilidadesFerreteria.obtenerDiccionarioCategorias();
+            UtilidadesFerreteria.mostrarMensaje("Seleccione la categoría:");
+            for (Map.Entry<Integer, String> entry : categorias.entrySet()) {
+                System.out.println(entry.getKey() + ". " + entry.getValue());
+            }
+            int opcionCategoria = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese el número de la categoría:");
+            if (!categorias.containsKey(opcionCategoria)) {
+                throw new Exception("Opción de categoría inválida.");
+            }
+            String categoriaSeleccionada = categorias.get(opcionCategoria);
+
+            int anioFabricacion = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese el año de fabricación:");
+            boolean esElectrico = UtilidadesFerreteria.solicitarBooleano("¿El producto es eléctrico?");
+            double calificacionCliente = UtilidadesFerreteria.solicitarNumeroDecimal(
+                    "Ingrese la calificación del cliente (0 a 10):");
+
+            // Solicitar el tipo de producto
+            System.out.println("1. Profesional");
+            System.out.println("2. Liquidación");
+            System.out.println("3. Estándar");
+            int tipo = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese el tipo de producto:");
+
+            Producto nuevoProducto;
+
+            switch (tipo) {
+                case 1: {
+                    System.out.println("1. Industrial");
+                    System.out.println("2. Comercial");
+                    int opcionCert = UtilidadesFerreteria.solicitarNumeroEntero(
+                            "Ingrese el nivel de certificación:");
+                    String certificacion;
+                    if (opcionCert == 1) {
+                        certificacion = "Industrial";
+                    } else if (opcionCert == 2) {
+                        certificacion = "Comercial";
+                    } else {
+                        throw new Exception("Opción de certificación inválida.");
+                    }
+                    nuevoProducto = new HerramientaProfesional(nombre, garantiaMeses, categoriaSeleccionada,
+                            anioFabricacion, esElectrico, calificacionCliente, certificacion);
+                    break;
+                }
+                case 2: {
+                    int anioLoteOriginal = UtilidadesFerreteria.solicitarNumeroEntero(
+                            "Ingrese el año del lote original:");
+                    nuevoProducto = new ProductoLiquidacion(nombre, garantiaMeses, categoriaSeleccionada,
+                            anioFabricacion, esElectrico, calificacionCliente, anioLoteOriginal);
+                    break;
+                }
+                case 3: {
+                    nuevoProducto = new ArticuloEstandar(nombre, garantiaMeses, categoriaSeleccionada,
+                            anioFabricacion, esElectrico, calificacionCliente);
+                    break;
+                }
+                default:
+                    throw new Exception("Tipo de producto inválido.");
+            }
+
+            inventario.add(nuevoProducto);
+            UtilidadesFerreteria.mostrarMensaje("Producto ingresado correctamente.");
+
+        } catch (Exception e) {
+            UtilidadesFerreteria.mostrarMensaje("No se pudo ingresar el producto: " + e.getMessage());
+        }
+    }
+
+    // ---------- OPCIÓN 2: Eliminar producto por nombre ----------
+
+    private static void eliminarProductoPorNombre() {
+        try {
+            String nombreEliminar = UtilidadesFerreteria.solicitarTexto("Ingrese el nombre del producto a eliminar:");
+            boolean removido = inventario.removeIf(p -> p.getNombre().equalsIgnoreCase(nombreEliminar));
+            if (removido) {
+                UtilidadesFerreteria.mostrarMensaje("Producto eliminado correctamente.");
+            } else {
+                UtilidadesFerreteria.mostrarMensaje("No se encontró ningún producto con ese nombre.");
+            }
+        } catch (Exception e) {
+            UtilidadesFerreteria.mostrarMensaje("Error al eliminar: " + e.getMessage());
+        }
+    }
+
+    // ---------- OPCIÓN 3: Buscar producto por nombre ----------
+
+    private static Producto buscarProductoPorNombre() {
+        try {
+            String nombreOriginal = UtilidadesFerreteria.solicitarTexto("Ingrese el nombre del producto a buscar:");
+            Producto productoEncontrado = null;
+            for (Producto p : inventario) {
+                if (p.getNombre().equalsIgnoreCase(nombreOriginal)) {
+                    productoEncontrado = p;
+                    break;
+                }
+            }
+            if (productoEncontrado != null) {
+                UtilidadesFerreteria.mostrarMensaje("Producto encontrado:");
+                System.out.println(productoEncontrado);
+            } else {
+                UtilidadesFerreteria.mostrarMensaje("No se encontró ningún producto con ese nombre.");
+            }
+            return productoEncontrado;
+        } catch (Exception e) {
+            UtilidadesFerreteria.mostrarMensaje("Error al buscar: " + e.getMessage());
+            return null;
+        }
+    }
+
+    // ---------- OPCIÓN 4: Listar todos los productos ----------
+
+    private static void listarProductos() {
+        if (inventario.isEmpty()) {
+            UtilidadesFerreteria.mostrarMensaje("El inventario está vacío.");
+            return;
+        }
+
+        System.out.println();
+        UtilidadesFerreteria.mostrarMensaje("Listado completo de productos:");
+        int totalGarantiaMeses = 0;
+        Producto productoMayorGarantia = null;
+        int cantidadHerramientasProfesionales = 0;
+
+        for (Producto p : inventario) {
+            System.out.println(" - " + p);
+            totalGarantiaMeses += p.getGarantiaMeses();
+            if (productoMayorGarantia == null || p.getGarantiaMeses() > productoMayorGarantia.getGarantiaMeses()) {
+                productoMayorGarantia = p;
+            }
+            if (p instanceof HerramientaProfesional) {
+                cantidadHerramientasProfesionales++;
+            }
+        }
+
+        System.out.println();
+        UtilidadesFerreteria.mostrarMensaje("--- Resumen del inventario ---");
+        UtilidadesFerreteria.mostrarMensaje("Total de meses de garantía acumulados: " + totalGarantiaMeses);
+        UtilidadesFerreteria.mostrarMensaje("Producto con mayor garantía: " + productoMayorGarantia.getNombre()
+                + " (" + productoMayorGarantia.getGarantiaMeses() + " meses)");
+        UtilidadesFerreteria.mostrarMensaje("Cantidad de herramientas profesionales: " + cantidadHerramientasProfesionales);
+    }
+
+    // ---------- OPCIÓN 5 (BONIFICACIÓN): Modificar producto ----------
+
+    private static void modificarProducto() {
+        try {
+            String nombreOriginal = UtilidadesFerreteria.solicitarTexto(
+                    "Ingrese el nombre del producto a modificar:");
+            Producto productoEncontrado = null;
+            for (Producto p : inventario) {
+                if (p.getNombre().equalsIgnoreCase(nombreOriginal)) {
+                    productoEncontrado = p;
+                    break;
+                }
+            }
+
+            if (productoEncontrado == null) {
+                UtilidadesFerreteria.mostrarMensaje("No se encontró ningún producto con ese nombre.");
+                return;
+            }
+
+            String nuevoNombre = UtilidadesFerreteria.solicitarTexto("Ingrese el nuevo nombre:");
+            // Evitar que el nuevo nombre choque con otro producto ya existente
+            for (Producto p : inventario) {
+                if (p != productoEncontrado && p.getNombre().equalsIgnoreCase(nuevoNombre)) {
+                    UtilidadesFerreteria.mostrarMensaje("Error: Ya existe otro producto con ese nombre.");
+                    return;
+                }
+            }
+            int nuevaGarantia = UtilidadesFerreteria.solicitarNumeroEntero("Ingrese la nueva garantía en meses:");
+            boolean nuevoEsElectrico = UtilidadesFerreteria.solicitarBooleano("¿El producto es eléctrico?");
+
+            productoEncontrado.setNombre(nuevoNombre);
+            productoEncontrado.setGarantiaMeses(nuevaGarantia);
+            productoEncontrado.setEsElectrico(nuevoEsElectrico);
+
+            UtilidadesFerreteria.mostrarMensaje("Producto modificado correctamente.");
+        } catch (Exception e) {
+            UtilidadesFerreteria.mostrarMensaje("Error al modificar: " + e.getMessage());
+        }
+    }
+}
